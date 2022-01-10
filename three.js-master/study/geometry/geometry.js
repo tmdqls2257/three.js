@@ -1,5 +1,7 @@
 import * as THREE from "../../build/three.module.js";
 import { OrbitControls } from "../../examples/jsm/controls/OrbitControls.js";
+import { FontLoader } from "../../examples/jsm/loaders/FontLoader.js";
+import { TextGeometry } from "../../examples/jsm/geometries/TextGeometry.js";
 
 class App {
 	constructor() {
@@ -47,7 +49,9 @@ class App {
 		const height = this._divContainer.clientHeight;
 		// 카메라 객체 생성
 		const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 100);
-		camera.position.z = 2;
+		camera.position.x = -20;
+		camera.position.y = 20;
+		camera.position.z = 30;
 		this._camera = camera;
 	}
 
@@ -70,29 +74,68 @@ class App {
 
 	// 파란색 계열의 정육면체를 생성하는 함수
 	_setupModel() {
-		// 가로 세로 높이가 1인 지오메트리
-		const geometry = new THREE.BoxGeometry(1, 1, 1, 2, 2, 2);
-		const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
-		const cube = new THREE.Mesh(geometry, fillMaterial);
+		const fontLoader = new FontLoader();
+		async function loadFont(that) {
+			const url = "../../examples/fonts/helvetiker_regular.typeface.json";
+			const font = await new Promise((resolve, reject) => {
+				fontLoader.load(url, resolve, undefined, reject);
+			});
 
-		// 선의 색을 노란색으로 정해 놓습니다.
-		const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
-		// 지오메트리를 이용해 line 오브젝트를 만들어줍니다.
-		const line = new THREE.LineSegments(
-			// WireframeGeometry를 사용하지 않으면 모델의 모든 외각선이 그려지지 않습니다.
-			new THREE.WireframeGeometry(geometry),
-			lineMaterial
-		);
+			const geometry = new TextGeometry("GIS", {
+				font: font,
+				size: 5,
+				height: 1.5,
+				// 하나의 커브를 구성하는 정점의 개수
+				curveSegments: 8,
+				bevelEnabled: true,
+				bevelThickness: 0.7,
+				// 외각선으로부터 얼마나 멀리 베벨링 할 것인지에 대한 거리 값
+				bevelSize: 0.7,
+				bevelOffset: 0,
+				bevelSegments: 2,
+			});
 
-		// mesh 오브젝트와 line 오브젝트를 하나의 오브젝트로 다루기 위해 그룹화 해줍니다.
-		const group = new THREE.Group();
-		group.add(cube);
-		group.add(line);
+			const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
+			const cube = new THREE.Mesh(geometry, fillMaterial);
 
-		// 그룹을 scene에 추가 합니다.
-		this._scene.add(group);
-		this._cube = group;
+			const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+			const line = new THREE.LineSegments(
+				new THREE.WireframeGeometry(geometry),
+				lineMaterial
+			);
+
+			const group = new THREE.Group();
+			group.add(cube);
+			group.add(line);
+
+			that._scene.add(group);
+			that._cube = group;
+		}
+		loadFont(this);
 	}
+
+	// _setupModel() {
+	// 	class CustomSinCurve extends THREE.Curve {
+	// 		constructor(scale) {
+	// 			super();
+	// 			this.scale = scale;
+	// 		}
+	// 		getPoint(t) {
+	// 			const tx = t * 3 - 1.5;
+	// 			const ty = Math.sin(2 * Math.PI * t);
+	// 			const tz = 0;
+	// 			return new THREE.Vector3(tx, ty, tz).multiplyScalar(this.scale);
+	// 		}
+	// 	}
+	// 	const path = new CustomSinCurve(4);
+	// 	const geometry = new THREE.BufferGeometry();
+	// 	const points = path.getPoints(50);
+	// 	geometry.setFromPoints(points);
+
+	// 	const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
+	// 	const line = new THREE.Line(geometry, material);
+	// 	this._scene.add(line);
+	// }
 
 	resize() {
 		const width = this._divContainer.clientWidth;
