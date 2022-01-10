@@ -1,7 +1,4 @@
 import * as THREE from "../../build/three.module.js";
-import { OrbitControls } from "../../examples/jsm/controls/OrbitControls.js";
-import { FontLoader } from "../../examples/jsm/loaders/FontLoader.js";
-import { TextGeometry } from "../../examples/jsm/geometries/TextGeometry.js";
 
 class App {
 	constructor() {
@@ -28,8 +25,6 @@ class App {
 		this._setupLight();
 		// 3차원 모델을 설정하는 함수
 		this._setupModel();
-		// 마우스로 컨트롤하기 위한 함수
-		this._setupControls();
 
 		// renderer난 camera는 창 크기가 변경될 때마다 그 크기에 맞게 속성 값을
 		// 재설정 해줘야 하기 때문
@@ -49,15 +44,8 @@ class App {
 		const height = this._divContainer.clientHeight;
 		// 카메라 객체 생성
 		const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 100);
-		camera.position.x = -20;
-		camera.position.y = 20;
-		camera.position.z = 30;
+		camera.position.z = 50;
 		this._camera = camera;
-	}
-
-	_setupControls() {
-		// OrbitControls객체는 카메라 객체와 먀우스 이벤트를 받는 DOM요소가 필요합니다.
-		new OrbitControls(this._camera, this._divContainer);
 	}
 
 	_setupLight() {
@@ -72,71 +60,71 @@ class App {
 		this._scene.add(light);
 	}
 
-	// 파란색 계열의 정육면체를 생성하는 함수
 	_setupModel() {
-		const fontLoader = new FontLoader();
-		async function loadFont(that) {
-			const url = "../../examples/fonts/helvetiker_regular.typeface.json";
-			const font = await new Promise((resolve, reject) => {
-				fontLoader.load(url, resolve, undefined, reject);
-			});
+		const solarSystem = new THREE.Object3D();
+		this._scene.add(solarSystem);
 
-			const geometry = new TextGeometry("GIS", {
-				font: font,
-				size: 5,
-				height: 1.5,
-				// 하나의 커브를 구성하는 정점의 개수
-				curveSegments: 8,
-				bevelEnabled: true,
-				bevelThickness: 0.7,
-				// 외각선으로부터 얼마나 멀리 베벨링 할 것인지에 대한 거리 값
-				bevelSize: 0.7,
-				bevelOffset: 0,
-				// 베벨링의 단계 수
-				bevelSegments: 2,
-			});
+		const radius = 1;
+		const widthSegments = 12;
+		const heightSegments = 12;
+		const sphereGeometry = new THREE.SphereGeometry(
+			radius,
+			widthSegments,
+			heightSegments
+		);
+		// 태양의 재질 생성
+		const sunMaterial = new THREE.MeshPhongMaterial({
+			emissive: 0xffff00,
+			flatShading: true,
+		});
 
-			const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
-			const cube = new THREE.Mesh(geometry, fillMaterial);
+		const sunMesh = new THREE.Mesh(sphereGeometry, sunMaterial);
+		// 태양의 크기는 3,3,3
+		sunMesh.scale.set(3, 3, 3);
+		solarSystem.add(sunMesh);
 
-			const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
-			const line = new THREE.LineSegments(
-				new THREE.WireframeGeometry(geometry),
-				lineMaterial
-			);
+		// earth 오브젝트를 형성
+		const earthOrbit = new THREE.Object3D();
+		// 지구의 크기는 1,1,1
+		solarSystem.add(earthOrbit);
 
-			const group = new THREE.Group();
-			group.add(cube);
-			group.add(line);
+		// earth mesh를 형성
+		const earthMaterial = new THREE.MeshPhongMaterial({
+			color: 0x2233ff,
+			emissive: 0x112244,
+			flatShading: true,
+		});
 
-			that._scene.add(group);
-			that._cube = group;
-		}
-		loadFont(this);
+		// earth의 지오메트리와 재질을 이용해 객체를 생성
+		const earthMesh = new THREE.Mesh(sphereGeometry, earthMaterial);
+		// earthOrbit의 위치를 x축으로 10만큼 움직여 줍니다.
+		earthOrbit.position.x = 10;
+		// earthMesh 객체를 earthOrbit의 자식으로 추가
+		earthOrbit.add(earthMesh);
+
+		// moon 오브젝트를 형성
+		const moonOrbit = new THREE.Object3D();
+		moonOrbit.position.x = 2;
+		// moon orbit은 earthOrbit의 자식이기 때문
+		earthOrbit.add(moonOrbit);
+
+		// moon의 material을 설정
+		const moonMaterial = new THREE.MeshPhongMaterial({
+			color: 0x888888,
+			emissive: 0x222222,
+			flatShading: true,
+		});
+
+		const moonMesh = new THREE.Mesh(sphereGeometry, moonMaterial);
+		// 달의 크기 설정 지구 크기의 절반
+		moonMesh.scale.set(0.5, 0.5, 0.5);
+		moonOrbit.add(moonMesh);
+
+		// solarSystem을 다른 클래스에서 사용가능하게
+		this._solarSystem = solarSystem;
+		this._earthOrbit = earthOrbit;
+		this._moonOrbit = moonOrbit;
 	}
-
-	// _setupModel() {
-	// 	class CustomSinCurve extends THREE.Curve {
-	// 		constructor(scale) {
-	// 			super();
-	// 			this.scale = scale;
-	// 		}
-	// 		getPoint(t) {
-	// 			const tx = t * 3 - 1.5;
-	// 			const ty = Math.sin(2 * Math.PI * t);
-	// 			const tz = 0;
-	// 			return new THREE.Vector3(tx, ty, tz).multiplyScalar(this.scale);
-	// 		}
-	// 	}
-	// 	const path = new CustomSinCurve(4);
-	// 	const geometry = new THREE.BufferGeometry();
-	// 	const points = path.getPoints(50);
-	// 	geometry.setFromPoints(points);
-
-	// 	const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
-	// 	const line = new THREE.Line(geometry, material);
-	// 	this._scene.add(line);
-	// }
 
 	resize() {
 		const width = this._divContainer.clientWidth;
@@ -162,8 +150,10 @@ class App {
 		time *= 0.001;
 		// 시간에 따라 큐브가 회전하게 됩니다.
 		// 여기서 time은 requestAnimationFrame에서 전달해줍니다.
-		// this._cube.rotation.x = time;
-		// this._cube.rotation.y = time;
+
+		this._solarSystem.rotation.y = time / 2;
+		this._earthOrbit.rotation.y = time * 3;
+		this._moonOrbit.rotation.y = time * 5;
 	}
 }
 
